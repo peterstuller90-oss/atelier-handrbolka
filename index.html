@@ -195,7 +195,7 @@ ul.rules{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;ga
     <div class="pane" data-pane="fotka" hidden>
       <div class="photo" id="drop"><img id="photoPrev" alt="Vložená fotka" hidden><span id="photoTxt">Fotka môže byť v bielom páse alebo cez celé pozadie.</span><button class="btn primary" id="photoBtn">Vybrať fotku</button><button class="link" id="photoDel" hidden>Odstrániť fotku</button><input type="file" id="photoIn" accept="image/*" hidden></div>
       <div class="seg" id="photoModeWrap" hidden role="group" aria-label="Kde je fotka"><button data-pm="pas">V páse</button><button data-pm="cele">Celé pozadie</button></div>
-      <label class="field" id="bandWrap" hidden><span class="lh">Veľkosť pásu s fotkou</span><input type="range" id="bandS" min="0.4" max="1.5" step="0.01"></label>
+      <label class="field" id="bandWrap" hidden><span class="lh">Veľkosť pásu s fotkou</span><input type="range" id="bandS" min="0.3" max="2.5" step="0.01"></label>
       <label class="field" id="veilWrap" hidden><span class="lh">Zosvetlenie fotky (pre čitateľnosť)</span><input type="range" id="veil" min="0" max="0.8" step="0.01"></label>
       <label class="field" id="photoYWrap" hidden><span class="lh">Posunúť fotku</span><input type="range" id="photoY" min="0" max="1" step="0.01"></label>
     </div>
@@ -2852,7 +2852,7 @@ function render(ctx,fk,S,o){
   const bgCol=S.bg==='pas'?PAL.grey:S.bg==='farba'?PAL[S.bgColor]:'#FFFFFF';
   ctx.fillStyle=bgCol;ctx.fillRect(-ext,-ext,W+2*ext,H+2*ext);
   const R=rng(S.seed);const img=photoImg();
-  let bandZone=L.free;if(!bandZone&&L.groupBox&&S.bg==='pas')bandZone=L.groupBox;
+  let bandZone=L.free;if(!bandZone&&L.groupBox&&(S.bg==='pas'||(img&&S.photoMode!=='cele')))bandZone=L.groupBox;
   let photoRect=null;
   const full=img&&S.photoMode==='cele';
   if(full){const a=anim?prog(t,0,.6):1;ctx.save();ctx.globalAlpha=a;drawPhoto(ctx,img,-ext,-ext,W+ext,H+ext,S.photoY);
@@ -2863,7 +2863,7 @@ function render(ctx,fk,S,o){
     const pa=anim?eOut(prog(t,0,.55)):1;
     if(pa>0){ctx.save();if(pa<1){ctx.beginPath();ctx.rect(-ext,-ext,(W+2*ext)*pa,H+2*ext);ctx.clip()}
       polyPath(ctx,pts);ctx.fillStyle='#FFFFFF';ctx.fill();
-      if(img&&!(L.lay==='stred')){ctx.clip();const a=anim?prog(t,.35,.5):1;ctx.globalAlpha=a;drawPhoto(ctx,img,-ext,bandZone[0]-W*.06,W+ext,bandZone[1]+W*.06,S.photoY);photoRect=[0,bandZone[0]+W*.06,W,bandZone[1]-W*.06]}
+      if(img){ctx.clip();const a=anim?prog(t,.35,.5):1;ctx.globalAlpha=a;drawPhoto(ctx,img,-ext,bandZone[0]-W*.06,W+ext,bandZone[1]+W*.06,S.photoY);if(L.lay==='stred'&&S.photoVeil>0){ctx.globalAlpha=a*S.photoVeil;ctx.fillStyle='#FFFFFF';ctx.fillRect(-ext,-ext,W+2*ext,H+2*ext)}photoRect=[0,bandZone[0]+W*.06,W,bandZone[1]-W*.06]}
       ctx.restore()}
   }
   if(S.bg==='mozaika'){const h=Math.round(46*u);const pa=anim?eOut(prog(t,0,.5)):1;drawPattern(ctx,-ext,-ext,-ext+(W+2*ext)*pa,h+ext,S.seed);drawPattern(ctx,W+ext-(W+2*ext)*pa,H-h,W+ext,h+ext,S.seed+3)}
@@ -2955,7 +2955,7 @@ function syncUI(){
   $('#decoN').value=S.deco;$('#decoNv').textContent=S.deco;$('#decoS').value=S.decoSize;$('#decoA').value=S.decoAlpha;
   $$('#decoCols>[data-k]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===S.decoCol)));
   const hp=!!S.photo;$('#photoModeWrap').hidden=!hp;$$('#photoModeWrap [data-pm]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pm===S.photoMode)));
-  $('#bandWrap').hidden=!hp||S.photoMode==='cele';$('#veilWrap').hidden=!hp||S.photoMode!=='cele';$('#bandS').value=S.bandScale;$('#veil').value=S.photoVeil;
+  $('#bandWrap').hidden=!hp||S.photoMode==='cele';$('#veilWrap').hidden=!hp||(S.photoMode!=='cele'&&effLayout(current,S)!=='stred');$('#bandS').value=S.bandScale;$('#veil').value=S.photoVeil;
   $('#socIg').checked=S.socIg;$('#socFb').checked=S.socFb;$('#socQr').checked=S.socQr;$('#socHint').hidden=!(S.socQr&&S.socFb&&!S.fbUrl);
   for(const id of['igName','igUrl','fbName','fbUrl'])if(document.activeElement!==$('#'+id))$('#'+id).value=S[id]||'';
   buildBlocks();buildFormats();
