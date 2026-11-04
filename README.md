@@ -1,5 +1,7 @@
 # Atelier Handrbolka
 
+Apka: https://peterstuller90-oss.github.io/atelier-handrbolka/
+
 Webová apka na grafiku pre Atelier Handrbolka: Instagram post a story, plagát A4 a A3 (PDF) a krátke intro video na Reels. Beží ako PWA, dá sa pridať na plochu iPhonu.
 
 - **Hosting:** GitHub Pages z vetvy `main` (koreň repozitára).
