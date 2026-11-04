@@ -1,5 +1,5 @@
 // Atelier Handrbolka – offline cache. Pri zmene apky zvýš VERZIA.
-const VERZIA = 'atelier-v7';
+const VERZIA = 'atelier-v8';
 const ZAKLAD = [
   './', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
