@@ -1,11 +1,11 @@
 // Atelier Handrbolka – offline cache. Pri zmene apky zvýš VERZIA.
-const VERZIA = 'atelier-v3';
+const VERZIA = 'atelier-v4';
 const ZAKLAD = [
   './', 'index.html', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
-  'https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js'
+  'libs/jspdf.umd.min.js', 'libs/jszip.min.js', 'libs/mp4-muxer.js', 'libs/opentype.min.js',
+  'fonts/montserrat-700-0.ttf', 'fonts/montserrat-700-1.ttf', 'fonts/montserrat-800-0.ttf',
+  'fonts/montserrat-800-1.ttf', 'fonts/montserrat-900-0.ttf', 'fonts/montserrat-900-1.ttf'
 ];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(VERZIA).then(c => c.addAll(ZAKLAD)).then(() => self.skipWaiting()));

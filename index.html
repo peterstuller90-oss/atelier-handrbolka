@@ -255,6 +255,7 @@ ul.rules{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;ga
 <div class="sheet" id="sheet" hidden><div class="card" role="dialog" aria-label="Stiahnuť">
   <h2>Stiahnuť</h2>
   <button class="btn primary" id="expMain">Tento formát</button>
+  <label class="toggle" id="bleedWrap"><span>Spadávka 3 mm a orezové značky<br><small style="font-weight:400;color:var(--muted)">len plagáty A4 a A3 do tlačiarne</small></span><input type="checkbox" id="bleedOn"></label>
   <button class="btn" id="expAll">Všetky formáty naraz (ZIP)</button>
   <button class="link" id="sheetClose">Zavrieť</button>
 </div></div>
@@ -284,9 +285,9 @@ ul.rules{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;ga
 <div class="toast" id="toast" hidden></div>
 
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mp4-muxer@5.1.3/build/mp4-muxer.js"></script>
+<script src="libs/jspdf.umd.min.js"></script>
+<script src="libs/jszip.min.js"></script>
+<script src="libs/mp4-muxer.js"></script>
 <script>/* qrcode-generator 1.4.4, (c) Kazuhiko Arase, MIT */
 //---------------------------------------------------------------------
 //
@@ -2633,7 +2634,7 @@ function photoImg(){if(!S.photo){PHOTO=null;PHOTOSRC=null;return null}if(PHOTOSR
 /* ---------- logo ---------- */
 const LB={x:29.7,y:46.4,w:286.6,h:150.8,word:181};
 const LP=(()=>{const c=document.createElement('canvas').getContext('2d');const R=rng(7);
-  return LOGO.map(([col,d,b])=>{const p=new Path2D(d);const word=b[1]>175;const r0=5.6;
+  return LOGO.map(([col,d,b])=>{const p=new Path2D(d);p.d=d;const word=b[1]>175;const r0=5.6;
     const cands=[[b[0]+r0,b[1]+r0],[b[2]-r0,b[1]+r0],[b[2]-r0,b[3]-r0],[b[0]+r0,b[3]-r0]];
     if(R()<.5)cands.reverse();
     let e=null;for(const q of cands)if(c.isPointInPath(p,q[0],q[1])){e=q;break}
@@ -2684,6 +2685,9 @@ function drawMosaicText(ctx,line,x,y,fs,align,seed,S,t,tStart,mode){
   const tris=[];
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){const a=P[j][i],b=P[j][i+1],c=P[j+1][i+1],d=P[j+1][i];
     if(R()<.5){tris.push([a,b,c],[a,c,d])}else{tris.push([a,b,d],[b,c,d])}}
+  if(ctx.isVector){const dx=align==='center'?x-wd/2:x;ctx.save();ctx.beginPath();ctx.textAlign='left';ctx.textPath(line,dx,y);ctx.clip();ctx.translate(dx-pad,y-asc-pad);
+    for(const tr of tris){const col=PAL[pickW(R,cols)];R();ctx.beginPath();tr.forEach((p,k)=>k?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=col;ctx.fill();ctx.strokeStyle=col;ctx.lineWidth=Math.max(1,fs*.012);ctx.lineJoin='round';ctx.stroke()}
+    ctx.restore();return}
   for(const tr of tris){const col=PAL[pickW(R,cols)];const rr=R();
     let sc=1;if(mode==='build'){const cx=(tr[0][0]+tr[1][0]+tr[2][0])/3;const st=tStart+(cx/bw)*.55+rr*.25;sc=eBack(prog(t,st,.38));if(sc<=0)continue}
     const cx=(tr[0][0]+tr[1][0]+tr[2][0])/3,cy=(tr[0][1]+tr[1][1]+tr[2][1])/3;
@@ -2974,8 +2978,9 @@ function initUI(){
   $('#photoBtn').onclick=()=>$('#photoIn').click();
   $('#photoIn').onchange=e=>{const f=e.target.files[0];if(f)loadPhoto(f);e.target.value=''};
   const dr=$('#drop');dr.ondragover=e=>e.preventDefault();dr.ondrop=e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))loadPhoto(f)};
-  $('#photoDel').onclick=()=>{S.photo=null;try{localStorage.removeItem('hb-studio-photo')}catch(e){}syncUI();changed()};
+  $('#photoDel').onclick=()=>{S.photo=null;S.photoHi=null;try{localStorage.removeItem('hb-studio-photo')}catch(e){}syncUI();changed()};
   $('#vMan').onclick=()=>view('man');$('#vBack').onclick=()=>view('edit');
+  $('#bleedOn').checked=PRINTOPT.bleed;$('#bleedOn').onchange=e=>{PRINTOPT.bleed=e.target.checked;try{localStorage.setItem('atelier-bleed',PRINTOPT.bleed?'1':'0')}catch(_){}};
   $('#expBtn').onclick=()=>{$('#expMain').textContent='Tento formát: '+FORMATS[current].n;$('#sheet').hidden=false};
   $('#sheetClose').onclick=()=>$('#sheet').hidden=true;$('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').hidden=true};
   $('#expMain').onclick=()=>{$('#sheet').hidden=true;doExport(current)};
@@ -2983,7 +2988,7 @@ function initUI(){
   $('#playBtn').onclick=play;$('#main').onclick=()=>{if(FORMATS[current].anim)playing?stop():play()};
   let rt;window.addEventListener('resize',()=>{clearTimeout(rt);rt=setTimeout(scheduleAll,120)});
 }
-function loadPhoto(file){const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const max=2400;const s=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.photo=c.toDataURL('image/jpeg',.88);try{localStorage.setItem('hb-studio-photo',S.photo)}catch(e){}syncUI();changed();toast('Fotka vložená')};im.src=fr.result};fr.readAsDataURL(file)}
+function loadPhoto(file){const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const max=2400;const s=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=Math.round(im.width*s);c.height=Math.round(im.height*s);c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.photo=c.toDataURL('image/jpeg',.88);S.photoHi='f'+Date.now();hiPut(S.photoHi,file);try{localStorage.setItem('hb-studio-photo',S.photo)}catch(e){}syncUI();changed();toast('Fotka vložená')};im.src=fr.result};fr.readAsDataURL(file)}
 function view(v){$('#editView').hidden=v!=='edit';$('#manView').hidden=v!=='man';$('#bar').hidden=v!=='edit';window.scrollTo(0,0);if(v==='man')drawManual();else scheduleAll()}
 function play(){playing=true;$('#playBtn').hidden=true;playStart=performance.now();
   const step=now=>{if(!playing)return;playT=(now-playStart)/1000;if(playT>S.dur+.6){stop();return}drawMain();raf=requestAnimationFrame(step)};raf=requestAnimationFrame(step)}
@@ -3011,8 +3016,9 @@ function fullCanvas(fk,bleed){const f=FORMATS[fk];const ext=bleed&&f.mm?Math.rou
 const toBlob=(c,type,q)=>new Promise(r=>c.toBlob(r,type,q));
 async function makeFile(fk){const f=FORMATS[fk];const base=slug()+'_'+FNAME[fk];
   if(fk==='reel'){const v=await makeVideo();return{name:base+'.'+v.ext,blob:v.blob}}
-  if(f.ext==='png'){const{c}=fullCanvas(fk);return{name:base+'.png',blob:await toBlob(c,'image/png')}}
-  const bleed=false;const{c,ext}=fullCanvas(fk,bleed);const b=bleed?3:0;const pw=f.mm[0]+2*b,ph=f.mm[1]+2*b;
+  if(f.ext==='png'){const{c}=fullCanvas(fk);return{name:base+'.png',blob:await pngDpi(await toBlob(c,'image/png'),72)}}
+  const bleed=PRINTOPT.bleed;
+  try{return{name:base+(bleed?'_spadavka-3mm':'')+'.pdf',blob:await makePrintPdf(fk,bleed)}}catch(e){console.warn('Vektorové PDF zlyhalo, používam obrázok',e)}const{c,ext}=fullCanvas(fk,bleed);const b=bleed?3:0;const pw=f.mm[0]+2*b,ph=f.mm[1]+2*b;
   const{jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:[pw,ph],orientation:'portrait',compress:true});
   const jpg=c.toDataURL('image/jpeg',.94);pdf.addImage(jpg,'JPEG',0,0,pw,ph,undefined,'FAST');pdf.setProperties({title:base,creator:'Ateliér Handrbolka'});
   return{name:base+(bleed?'_spadavka':'')+'.pdf',blob:pdf.output('blob')}}
@@ -3117,6 +3123,131 @@ function initNav(){
   $('#doneClose').onclick=()=>{$('#doneSheet').hidden=true;PEND=null};
 }
 if('serviceWorker' in navigator&&location.protocol==='https:')window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+/* ---------- tlač: vektorové PDF, spadávka a orezové značky, DPI ---------- */
+const PT=72/25.4;
+const PRINT={fonts:null,hi:null,hiId:null,minDpi:Infinity};
+let PRINTOPT={bleed:false};try{PRINTOPT.bleed=localStorage.getItem('atelier-bleed')==='1'}catch(e){}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Nepodarilo sa načítať '+src));document.head.appendChild(s)})}
+async function printFonts(){if(PRINT.fonts)return PRINT.fonts;if(!window.opentype)await loadScript('libs/opentype.min.js');
+  const F={};await Promise.all(['700','800','900'].map(async w=>{F[w]=await Promise.all([0,1].map(async i=>{const r=await fetch('fonts/montserrat-'+w+'-'+i+'.ttf');if(!r.ok)throw new Error('Chýba písmo');return opentype.parse(await r.arrayBuffer())}))}));
+  return PRINT.fonts=F}
+/* fotka vo vysokom rozlíšení (IndexedDB) */
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('atelier',1);r.onupgradeneeded=()=>r.result.createObjectStore('foto');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function hiPut(id,blob){try{const db=await idb();await new Promise((res,rej)=>{const t=db.transaction('foto','readwrite');t.objectStore('foto').clear();t.objectStore('foto').put(blob,id);t.oncomplete=res;t.onerror=()=>rej(t.error)})}catch(e){}}
+async function hiGet(id){try{const db=await idb();return await new Promise(res=>{const t=db.transaction('foto');const q=t.objectStore('foto').get(id);q.onsuccess=()=>res(q.result||null);q.onerror=()=>res(null)})}catch(e){return null}}
+async function loadHi(){if(!S.photo||!S.photoHi){PRINT.hi=null;return}if(PRINT.hiId===S.photoHi&&PRINT.hi)return;
+  const b=await hiGet(S.photoHi);if(!b){PRINT.hi=null;return}
+  PRINT.hi=await new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.onerror=()=>res(null);im.src=URL.createObjectURL(b)});PRINT.hiId=S.photoHi}
+/* krivky textu z písma */
+function fontParts(font){const m=/(\d{3})\s+([\d.]+)px/.exec(font)||[0,'900','10'];let w=m[1];if(!['700','800','900'].includes(w))w=+w>850?'900':+w>750?'800':'700';return{w,size:+m[2]}}
+function textCmds(text,x,y,font){const{w,size}=fontParts(font);const FF=PRINT.fonts[w];const out=[];let cx=x,prev=null,pf=null;
+  for(const ch of text){const f=FF[0].charToGlyphIndex(ch)>0?FF[0]:FF[1];const g=f.charToGlyph(ch);if(prev&&pf===f)cx+=f.getKerningValue(prev,g)*size/f.unitsPerEm;
+    const pth=g.getPath(cx,y,size);out.push(...pth.commands);cx+=g.advanceWidth*size/f.unitsPerEm;prev=g;pf=f}
+  return out}
+function parseD(d){const t=d.match(/[MLCZ]|-?\d*\.?\d+(?:e[-+]?\d+)?/gi);const out=[];let i=0;
+  while(i<t.length){const c=t[i++];if(c==='Z'){out.push(['Z']);continue}const n=c==='C'?6:2;
+    do{const a=t.slice(i,i+n).map(Number);i+=n;out.push([c,...a])}while(i<t.length&&!/[MLCZ]/i.test(t[i]))}
+  return out}
+function colorOf(s){s=String(s).trim();let r=0,g=0,b=0,a=1;
+  if(s[0]==='#'){if(s.length===4){r=parseInt(s[1]+s[1],16);g=parseInt(s[2]+s[2],16);b=parseInt(s[3]+s[3],16)}else{r=parseInt(s.slice(1,3),16);g=parseInt(s.slice(3,5),16);b=parseInt(s.slice(5,7),16)}}
+  else{const m=s.match(/[\d.]+/g)||[];r=+m[0]||0;g=+m[1]||0;b=+m[2]||0;if(m[3]!=null)a=+m[3]}
+  return{c:(r/255).toFixed(4)+' '+(g/255).toFixed(4)+' '+(b/255).toFixed(4),a}}
+class VCtx{
+  constructor(pdf,o){this.pdf=pdf;this.o=o;this.isVector=true;this.st={m:[1,0,0,1,0,0],fill:'#000',stroke:'#000',alpha:1,lw:1,cap:'butt',join:'miter',font:'10px sans-serif',align:'left',base:'alphabetic'};
+    this.stack=[];this.path=[];this.cur=null;this.curU=null;this.start=null;this.startU=null;this.gsA=1;this.gsN=0;this.gsK={}}
+  set fillStyle(v){this.st.fill=v}get fillStyle(){return this.st.fill}
+  set strokeStyle(v){this.st.stroke=v}get strokeStyle(){return this.st.stroke}
+  set globalAlpha(v){this.st.alpha=v}get globalAlpha(){return this.st.alpha}
+  set lineWidth(v){this.st.lw=v}get lineWidth(){return this.st.lw}
+  set lineCap(v){this.st.cap=v}get lineCap(){return this.st.cap}
+  set lineJoin(v){this.st.join=v}get lineJoin(){return this.st.join}
+  set font(v){this.st.font=v}get font(){return this.st.font}
+  set textAlign(v){this.st.align=v}get textAlign(){return this.st.align}
+  set textBaseline(v){this.st.base=v}get textBaseline(){return this.st.base}
+  set globalCompositeOperation(v){}get globalCompositeOperation(){return'source-over'}
+  w(s){this.pdf.internal.write(s)}
+  P(p){const o=this.o;return((o.ox+p[0]*o.k)*PT).toFixed(3)+' '+((o.ph-(o.oy+p[1]*o.k))*PT).toFixed(3)}
+  tp(x,y){const m=this.st.m;return[m[0]*x+m[2]*y+m[4],m[1]*x+m[3]*y+m[5]]}
+  save(){this.stack.push({st:{...this.st,m:this.st.m.slice()},gsA:this.gsA});this.w('q')}
+  restore(){const s=this.stack.pop();if(!s)return;this.st=s.st;this.gsA=s.gsA;this.w('Q')}
+  setTransform(a,b,c,d,e,f){this.st.m=[a,b,c,d,e,f]}
+  translate(x,y){const m=this.st.m;m[4]+=m[0]*x+m[2]*y;m[5]+=m[1]*x+m[3]*y}
+  scale(x,y){const m=this.st.m;m[0]*=x;m[1]*=x;m[2]*=y;m[3]*=y}
+  rotate(r){const m=this.st.m,c=Math.cos(r),s=Math.sin(r);const a=m[0],b=m[1],cc=m[2],d=m[3];m[0]=a*c+cc*s;m[1]=b*c+d*s;m[2]=cc*c-a*s;m[3]=d*c-b*s}
+  beginPath(){this.path=[];this.cur=null;this.curU=null}
+  moveTo(x,y){const p=this.tp(x,y);this.path.push(['m',p]);this.cur=this.start=p;this.curU=this.startU=[x,y]}
+  lineTo(x,y){if(!this.cur)return this.moveTo(x,y);const p=this.tp(x,y);this.path.push(['l',p]);this.cur=p;this.curU=[x,y]}
+  bezierCurveTo(a,b,c,d,x,y){if(!this.cur)this.moveTo(a,b);const p=this.tp(x,y);this.path.push(['c',this.tp(a,b),this.tp(c,d),p]);this.cur=p;this.curU=[x,y]}
+  quadraticCurveTo(a,b,x,y){const u=this.curU||[a,b];this.bezierCurveTo(u[0]+2/3*(a-u[0]),u[1]+2/3*(b-u[1]),x+2/3*(a-x),y+2/3*(b-y),x,y)}
+  closePath(){if(this.cur){this.path.push(['h']);this.cur=this.start;this.curU=this.startU}}
+  rect(x,y,w,h){this.moveTo(x,y);this.lineTo(x+w,y);this.lineTo(x+w,y+h);this.lineTo(x,y+h);this.closePath()}
+  arcSeg(cx,cy,r,a0,sw){const sx=cx+r*Math.cos(a0),sy=cy+r*Math.sin(a0);if(this.cur)this.lineTo(sx,sy);else this.moveTo(sx,sy);
+    const n=Math.max(1,Math.ceil(Math.abs(sw)/(Math.PI/2)-1e-9));const th=sw/n;const kk=4/3*Math.tan(th/4);
+    for(let i=0;i<n;i++){const t0=a0+i*th,t1=t0+th;const x0=cx+r*Math.cos(t0),y0=cy+r*Math.sin(t0),x3=cx+r*Math.cos(t1),y3=cy+r*Math.sin(t1);
+      this.bezierCurveTo(x0-kk*r*Math.sin(t0),y0+kk*r*Math.cos(t0),x3+kk*r*Math.sin(t1),y3-kk*r*Math.cos(t1),x3,y3)}}
+  arc(cx,cy,r,a0,a1,ccw){const T=Math.PI*2;let sw;
+    if(!ccw){sw=a1-a0;if(sw>=T)sw=T;else{sw=((sw%T)+T)%T}}else{sw=a0-a1;if(sw>=T)sw=T;else{sw=((sw%T)+T)%T}sw=-sw}
+    this.arcSeg(cx,cy,r,a0,sw)}
+  arcTo(x1,y1,x2,y2,r){if(!this.curU)return this.moveTo(x1,y1);const[x0,y0]=this.curU;
+    let ax=x0-x1,ay=y0-y1,bx=x2-x1,by=y2-y1;const la=Math.hypot(ax,ay),lb=Math.hypot(bx,by);
+    if(r<=0||la<1e-9||lb<1e-9){return this.lineTo(x1,y1)}ax/=la;ay/=la;bx/=lb;by/=lb;const cr=ax*by-ay*bx;if(Math.abs(cr)<1e-9)return this.lineTo(x1,y1);
+    const th=Math.acos(Math.max(-1,Math.min(1,ax*bx+ay*by)));const d=r/Math.tan(th/2);const t1=[x1+ax*d,y1+ay*d],t2=[x1+bx*d,y1+by*d];
+    let mx=ax+bx,my=ay+by;const lm=Math.hypot(mx,my);mx/=lm;my/=lm;const h=r/Math.sin(th/2);const c=[x1+mx*h,y1+my*h];
+    this.lineTo(t1[0],t1[1]);const a0=Math.atan2(t1[1]-c[1],t1[0]-c[0]),a1=Math.atan2(t2[1]-c[1],t2[0]-c[0]);let sw=a1-a0;while(sw>Math.PI)sw-=2*Math.PI;while(sw<-Math.PI)sw+=2*Math.PI;
+    this.arcSeg(c[0],c[1],r,a0,sw)}
+  emitPath(){let s='';for(const q of this.path){if(q[0]==='m')s+=this.P(q[1])+' m\n';else if(q[0]==='l')s+=this.P(q[1])+' l\n';else if(q[0]==='c')s+=this.P(q[1])+' '+this.P(q[2])+' '+this.P(q[3])+' c\n';else s+='h\n'}this.w(s)}
+  setA(a){a=Math.round(Math.max(0,Math.min(1,a))*1000)/1000;if(a===this.gsA)return;const key='a'+Math.round(a*1000);
+    if(!this.gsK[key]){this.pdf.addGState(key,new this.pdf.GState({opacity:a,'stroke-opacity':a}));this.gsK[key]=1}this.pdf.setGState(key);this.gsA=a}
+  usePath2D(p){this.beginPath();for(const c of parseD(p.d)){if(c[0]==='M')this.moveTo(c[1],c[2]);else if(c[0]==='L')this.lineTo(c[1],c[2]);else if(c[0]==='C')this.bezierCurveTo(c[1],c[2],c[3],c[4],c[5],c[6]);else this.closePath()}}
+  fill(a){if(a&&typeof a==='object'&&a.d)this.usePath2D(a);if(!this.path.length)return;const c=colorOf(this.st.fill);this.setA(this.st.alpha*c.a);this.w(c.c+' rg');this.emitPath();this.w(a==='evenodd'?'f*':'f')}
+  stroke(){if(!this.path.length)return;const c=colorOf(this.st.stroke);this.setA(this.st.alpha*c.a);const m=this.st.m;const sc=Math.sqrt(Math.abs(m[0]*m[3]-m[1]*m[2]));
+    this.w(c.c+' RG '+(this.st.lw*sc*this.o.k*PT).toFixed(3)+' w '+({butt:0,round:1,square:2}[this.st.cap]||0)+' J '+({miter:0,round:1,bevel:2}[this.st.join]||0)+' j');this.emitPath();this.w('S')}
+  clip(a){if(a&&typeof a==='object'&&a.d)this.usePath2D(a);if(!this.path.length){this.w('0 0 0 0 re W n');return}this.emitPath();this.w('W n')}
+  fillRect(x,y,w,h){const sv=[this.path,this.cur,this.curU];this.beginPath();this.rect(x,y,w,h);this.fill();[this.path,this.cur,this.curU]=sv}
+  clearRect(){}
+  measureText(t){const m=this.o.meas;m.font=this.st.font;return m.measureText(t)}
+  textPath(t,x,y){if(this.st.align==='center'||this.st.align==='right'){const w=this.measureText(t).width;x-=this.st.align==='center'?w/2:w}
+    for(const c of textCmds(t,x,y,this.st.font)){if(c.type==='M')this.moveTo(c.x,c.y);else if(c.type==='L')this.lineTo(c.x,c.y);else if(c.type==='Q')this.quadraticCurveTo(c.x1,c.y1,c.x,c.y);else if(c.type==='C')this.bezierCurveTo(c.x1,c.y1,c.x2,c.y2,c.x,c.y);else if(c.type==='Z')this.closePath()}}
+  fillText(t,x,y){const sv=[this.path,this.cur,this.curU];this.beginPath();this.textPath(String(t),x,y);this.fill();[this.path,this.cur,this.curU]=sv}
+  drawImage(img,...a){let sx=0,sy=0,sw=img.naturalWidth||img.width,sh=img.naturalHeight||img.height,dx,dy,dw,dh;
+    if(a.length===2){[dx,dy]=a;dw=sw;dh=sh}else if(a.length===4){[dx,dy,dw,dh]=a}else{[sx,sy,sw,sh,dx,dy,dw,dh]=a}
+    const p0=this.tp(dx,dy),p1=this.tp(dx+dw,dy+dh);this.o.image(this,img,sx,sy,sw,sh,Math.min(p0[0],p1[0]),Math.min(p0[1],p1[1]),Math.abs(p1[0]-p0[0]),Math.abs(p1[1]-p0[1]))}
+}
+/* fotka do PDF vždy v 300 dpi (v pásoch, aby to zvládol aj iPhone) */
+function pdfImage(v,img,sx,sy,sw,sh,dx,dy,dw,dh){const o=v.o;let src=img;
+  if(img===PHOTO&&PRINT.hi){const f=PRINT.hi.naturalWidth/img.naturalWidth;src=PRINT.hi;sx*=f;sy*=f;sw*=f;sh*=f}
+  // orez na plochu stránky (so spadávkou)
+  const L=-o.ext,T=-o.ext,R=o.W+o.ext,B=o.H+o.ext;let x0=Math.max(dx,L),y0=Math.max(dy,T),x1=Math.min(dx+dw,R),y1=Math.min(dy+dh,B);if(x1<=x0||y1<=y0)return;
+  const fx=sw/dw,fy=sh/dh;const ssx=sx+(x0-dx)*fx,ssy=sy+(y0-dy)*fy,ssw=(x1-x0)*fx,ssh=(y1-y0)*fy;
+  const wmm=(x1-x0)*o.k,hmm=(y1-y0)*o.k;const tw=Math.max(1,Math.round(wmm/25.4*300)),th=Math.max(1,Math.round(hmm/25.4*300));
+  PRINT.minDpi=Math.min(PRINT.minDpi,ssw/(wmm/25.4));
+  const rows=Math.max(1,Math.floor(3.5e6/tw));v.setA(v.st.alpha);
+  for(let r0=0;r0<th;r0+=rows){const rh=Math.min(rows,th-r0);const c=document.createElement('canvas');c.width=tw;c.height=rh;const cx=c.getContext('2d');cx.imageSmoothingQuality='high';
+    cx.drawImage(src,ssx,ssy+ssh*r0/th,ssw,ssh*rh/th,0,0,tw,rh);const url=c.toDataURL('image/jpeg',.92);c.width=c.height=1;
+    v.pdf.addImage(url,'JPEG',o.ox+x0*o.k,o.oy+y0*o.k+hmm*r0/th,wmm,hmm*rh/th)}}
+async function makePrintPdf(fk,bleed){const f=FORMATS[fk];await printFonts();await loadHi();PRINT.minDpi=Infinity;
+  const k=f.mm[0]/f.W;const B=bleed?3:0,M=bleed?12:0;const pw=f.mm[0]+2*M,ph=f.mm[1]+2*M;const ext=B/k;
+  const{jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:[pw,ph],orientation:'portrait',compress:true,putOnlyUsedFonts:true});
+  const meas=document.createElement('canvas').getContext('2d');
+  const v=new VCtx(pdf,{k,ox:M-B,oy:M-B,ph,meas,ext,W:f.W,H:f.H,image:pdfImage});
+  v.w('q');render(v,fk,S,{W:f.W,H:f.H,ext,t:null});v.w('Q');
+  if(bleed){const pi=pdf.getPageInfo(1).pageContext;const bx=(a,b,c,d)=>({bottomLeftX:a*PT,bottomLeftY:b*PT,topRightX:c*PT,topRightY:d*PT});
+    pi.trimBox=bx(M,M,M+f.mm[0],M+f.mm[1]);pi.bleedBox=bx(M-B,M-B,M+f.mm[0]+B,M+f.mm[1]+B);
+    // orezové značky: 0,25 pt, registračná farba, odsadené 3 mm od orezu, dĺžka 5 mm
+    const L=5,O=3,xs=[M,M+f.mm[0]],ys=[M,M+f.mm[1]];let s='q 1 1 1 1 K 0.25 w 0 J\n';const P=(x,y)=>(x*PT).toFixed(3)+' '+((ph-y)*PT).toFixed(3);
+    for(const x of xs)for(const y of ys){const dx=x===M?-1:1,dy=y===M?-1:1;
+      s+=P(x+dx*O,y)+' m '+P(x+dx*(O+L),y)+' l S\n'+P(x,y+dy*O)+' m '+P(x,y+dy*(O+L))+' l S\n'}
+    pdf.internal.write(s+'Q')}
+  pdf.setProperties({title:slug(),creator:'Atelier Handrbolka',subject:bleed?'Spadávka 3 mm, orezové značky':'Bez spadávky'});
+  if(S.photo&&PRINT.minDpi<280)toast('Pozor: fotka má pri tejto veľkosti len '+Math.round(PRINT.minDpi)+' dpi, do PDF je prevzorkovaná na 300 dpi.',6000);
+  return pdf.output('blob')}
+/* PNG pre sociálne siete: 72 dpi v metadátach */
+const CRCT=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(b){let c=0xFFFFFFFF;for(let i=0;i<b.length;i++)c=CRCT[(c^b[i])&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+async function pngDpi(blob,dpi){const b=new Uint8Array(await blob.arrayBuffer());const ppm=Math.round(dpi/0.0254);const ch=new Uint8Array(21);const dv=new DataView(ch.buffer);
+  dv.setUint32(0,9);ch.set([0x70,0x48,0x59,0x73],4);dv.setUint32(8,ppm);dv.setUint32(12,ppm);ch[16]=1;dv.setUint32(17,crc32(ch.subarray(4,17)));
+  const out=new Uint8Array(b.length+21);out.set(b.subarray(0,33));out.set(ch,33);out.set(b.subarray(33),54);return new Blob([out],{type:'image/png'})}
+
 start();
 </script>
 </body>
