@@ -64,7 +64,7 @@ button{cursor:pointer}
 .top canvas{width:70px;height:37px}
 .top b{font-family:var(--disp);font-weight:900;font-size:15px;letter-spacing:.03em;flex:1}
 .link{border:0;background:none;color:var(--muted);font-size:14px;font-weight:600;padding:8px 4px;text-decoration:underline;text-underline-offset:3px}
-.preview{background:var(--paper);display:grid;place-items:center;padding:16px;position:relative}
+.preview{background:var(--paper);display:grid;place-items:center;padding:12px 16px;position:sticky;top:0;z-index:15;box-shadow:0 6px 12px -10px rgba(43,30,58,.35)}
 #main{display:block;box-shadow:0 6px 24px rgba(43,30,58,.16);max-width:100%;height:auto}
 .playbtn{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);border:0;background:var(--mag);color:#fff;border-radius:999px;padding:10px 20px;font-weight:700;box-shadow:0 4px 14px rgba(189,28,142,.35)}
 .formats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding-block:14px}
@@ -73,7 +73,7 @@ button{cursor:pointer}
 .formats button small{font-weight:400;font-size:11.5px;color:var(--muted)}
 .formats button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
 .formats button[aria-pressed="true"] small{color:#d9d0e3}
-.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--paper);border-radius:12px;padding:4px;gap:4px}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--paper);border-radius:12px;padding:4px;gap:4px;position:sticky;top:calc(var(--pvh,0px) + 8px);z-index:14;box-shadow:0 0 0 8px var(--bg)}
 .tabs button{border:0;background:transparent;border-radius:9px;padding:10px 0;font-weight:600;color:var(--muted)}
 .tabs button[aria-selected="true"]{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(43,30,58,.14)}
 .pane{display:flex;flex-direction:column;gap:14px;padding-block:18px 8px}
@@ -2919,9 +2919,9 @@ function toast(msg,ms=2600){const t=$('#toast');t.textContent=msg;t.hidden=false
 function sizeFor(fk,maxW,maxH){const f=FORMATS[fk];const s=Math.min(maxW/f.W,maxH/f.H);return[Math.round(f.W*s),Math.round(f.H*s)]}
 function drawTo(canvas,fk,cssW,cssH,t,st){const d=Math.min(2,window.devicePixelRatio||1);canvas.width=Math.round(cssW*d);canvas.height=Math.round(cssH*d);canvas.style.width=cssW+'px';canvas.style.aspectRatio=cssW+'/'+cssH;
   renderFrame(canvas.getContext('2d'),fk,st||S,{W:canvas.width,H:canvas.height,t:t==null?null:t})}
-function drawMain(){const box=$('#canvasbox');const maxW=Math.max(200,box.clientWidth-32);const maxH=Math.max(300,Math.min(window.innerHeight*.58,760));
+function drawMain(){const box=$('#canvasbox');const maxW=Math.max(200,box.clientWidth-32);const maxH=Math.max(200,Math.min(window.innerHeight*(window.innerWidth<700?.40:.58),760));
   const[w,h]=sizeFor(current,maxW,maxH);drawTo($('#main'),current,w,h,FORMATS[current].anim&&playing?playT:null);
-  $('#playBtn').hidden=!FORMATS[current].anim||playing}
+  $('#playBtn').hidden=!FORMATS[current].anim||playing;document.documentElement.style.setProperty('--pvh',box.offsetHeight+'px')}
 function drawOpts(){
   const fk=current==='reel'?'story':current;
   $$('#layouts canvas').forEach(c=>{const st=Object.assign({},S,{layout:c.dataset.k,over:{}});const w=c.parentElement.clientWidth-14;drawTo(c,fk,w,w*1.25,null,st)});
@@ -2965,6 +2965,7 @@ function initUI(){
   const sw=$('#bgColors');for(const k of['lav','teal','rose','mag']){const b=document.createElement('button');b.style.background=PAL[k];b.dataset.k=k;b.setAttribute('aria-label',CNAME[k]);b.onclick=()=>{S.bgColor=k;syncUI();changed()};sw.appendChild(b)}
   $$('[data-add]').forEach(b=>b.onclick=()=>{const ty=b.dataset.add;S.blocks.push({id:UID++,type:ty,text:''});buildBlocks();changed();const ta=$('#bt'+S.blocks[S.blocks.length-1].id);if(ta)ta.focus()});
   $$('[data-tab]').forEach(b=>b.onclick=()=>{$$('[data-tab]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));$$('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==b.dataset.tab);if(b.dataset.tab==='vzhlad')drawOpts()});
+  document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{const tb=document.querySelector('.tabs');const y=tb.parentElement.getBoundingClientRect().top+window.scrollY-document.getElementById('canvasbox').offsetHeight;if(window.scrollY>y)window.scrollTo(0,y)}));
   $('#logoOn').onchange=e=>{S.logo=e.target.checked;changed()};
   $('#photoY').oninput=e=>{S.photoY=+e.target.value;changed()};
   const num=(id,key,after)=>{$(id).oninput=e=>{S[key]=+e.target.value;if(after)after();changed()}};
