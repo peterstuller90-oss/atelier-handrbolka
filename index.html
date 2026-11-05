@@ -67,7 +67,7 @@ button{cursor:pointer}
 .preview{background:var(--paper);display:grid;place-items:center;padding:12px 16px;position:sticky;top:0;z-index:15;box-shadow:0 6px 12px -10px rgba(43,30,58,.35)}
 #main{display:block;box-shadow:0 6px 24px rgba(43,30,58,.16);max-width:100%;height:auto}
 .playbtn{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);border:0;background:var(--mag);color:#fff;border-radius:999px;padding:10px 20px;font-weight:700;box-shadow:0 4px 14px rgba(189,28,142,.35)}
-.formats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding-block:14px}
+.formats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding-block:14px}
 .formats::-webkit-scrollbar{display:none}
 .formats button{min-width:0;border:1px solid var(--line);background:var(--bg);border-radius:14px;padding:8px 2px;font-weight:600;font-size:15px;display:flex;flex-direction:column;align-items:center;line-height:1.15}
 .formats button small{font-weight:400;font-size:11.5px;color:var(--muted)}
@@ -114,6 +114,8 @@ input[type=range]{width:100%;accent-color:var(--mag)}
 .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border-radius:12px;padding:4px;gap:4px}
 .seg button{border:0;background:transparent;border-radius:9px;padding:10px 0;font-weight:600;color:var(--muted)}
 .seg button[aria-pressed="true"]{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgba(43,30,58,.14)}
+#logoCols{flex-wrap:wrap;margin-top:-4px}
+#logoCols .wh{background:#fff}
 .sw .mix{background:conic-gradient(#FF5D13 0 20%,#63BEAC 0 40%,#CCADFF 0 60%,#BD1C8E 0 80%,#DF99AC 0)}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .bar .in{max-width:528px;margin:0 auto;display:grid;grid-template-columns:1fr 1.3fr;gap:10px}
@@ -185,6 +187,8 @@ ul.rules{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;ga
       <h3>Pozadie</h3><div class="opts" id="bgs"></div>
       <div class="sw" id="bgColors" hidden></div>
       <label class="toggle">Zobraziť logo<input type="checkbox" id="logoOn"></label>
+      <p class="hint" id="logoColH" style="margin:2px 0 -2px">Farba loga</p>
+      <div class="sw" id="logoCols" role="group" aria-label="Farba loga"></div>
       <h3>Ozdoby</h3>
       <label class="rng"><span>Množstvo</span><input type="range" id="decoN" min="0" max="12" step="1"><output id="decoNv"></output></label>
       <label class="rng"><span>Veľkosť</span><input type="range" id="decoS" min="0.6" max="2" step="0.05"></label>
@@ -254,6 +258,7 @@ ul.rules{margin:10px 0 0;padding-left:20px;display:flex;flex-direction:column;ga
 
 <div class="sheet" id="sheet" hidden><div class="card" role="dialog" aria-label="Stiahnuť">
   <h2>Stiahnuť</h2>
+  <label class="field" style="margin:0"><span class="lh">Téma v názve súboru</span><input type="text" id="fileTema" autocomplete="off"><small class="hint" id="fileHint"></small></label>
   <button class="btn primary" id="expMain">Tento formát</button>
   <label class="toggle" id="bleedWrap"><span>Spadávka 3 mm a orezové značky<br><small style="font-weight:400;color:var(--muted)">len plagáty A4 a A3 do tlačiarne</small></span><input type="checkbox" id="bleedOn"></label>
   <button class="btn" id="expAll">Všetky formáty naraz (ZIP)</button>
@@ -2595,13 +2600,14 @@ const LOGO = [["#ff5d13","M 39.37 153.33 C 38.82 153.33 38.26 153.23 37.71 153.0
 const PAL=window.PALX={orange:'#FF5D13',teal:'#63BEAC',lav:'#CCADFF',mag:'#BD1C8E',pink:'#DF99AC',rose:'#F59BAE',turq:'#00C0AD',white:'#FFFFFF',ink:'#2B1E3A',grey:'#F3F3F3'};
 const CNAME={orange:'Oranžová',teal:'Mätová',lav:'Levanduľová',mag:'Magenta',pink:'Ružová',rose:'Svetloružová',turq:'Tyrkysová',white:'Biela',ink:'Tmavofialová'};
 const FORMATS={
-  post:{n:'Insta post',sub:'1080 × 1350 px · online',W:1080,H:1350,mt:.08,mb:.08,ext:'png'},
-  story:{n:'Insta story',sub:'1080 × 1920 px · online',W:1080,H:1920,mt:.13,mb:.15,ext:'png',safe:[250,340]},
+  post:{n:'IG post',sub:'1080 × 1350 px · online',W:1080,H:1350,mt:.085,mb:.085,ext:'png'},
+  postvid:{n:'IG video',sub:'1080 × 1350 px · video',W:1080,H:1350,mt:.085,mb:.085,ext:'mp4',anim:true},
+  story:{n:'IG story',sub:'1080 × 1920 px · online',W:1080,H:1920,mt:.14,mb:.19,ext:'png',safe:[250,340]},
   a4:{n:'Plagát A4',sub:'210 × 297 mm · tlač',W:2480,H:3508,mm:[210,297],dpi:300,mt:.07,mb:.07,ext:'pdf'},
   a3:{n:'Plagát A3',sub:'297 × 420 mm · tlač',W:3274,H:4630,mm:[297,420],dpi:280,mt:.07,mb:.07,ext:'pdf'},
-  reel:{n:'Reel intro',sub:'1080 × 1920 px · video',W:1080,H:1920,mt:.14,mb:.19,ext:'mp4',anim:true,safe:[250,340]}
+  reel:{n:'IG story video',sub:'1080 × 1920 px · video',W:1080,H:1920,mt:.14,mb:.19,ext:'mp4',anim:true,safe:[250,340]}
 };
-const FKEYS=['post','story','a4','a3','reel'];
+const FKEYS=['post','postvid','story','reel','a4','a3'];
 const LAYOUTS=[['klasika','Klasika','logo hore, údaje dole'],['hore','Všetko hore','pás dole'],['dole','Všetko dole','pás hore'],['stred','Na stred','bez pásu'],['obratene','Nadpis hore','logo dole']];
 const BGS=[['pas','Sivá + pás','ako v príklade'],['biela','Biela','čistá'],['mozaika','Vzor','pásy na okrajoch'],['konfety','Konfety','paličky z loga'],['farba','Farebné','plná farba']];
 const LOGOSTYLES=[['auto','Automaticky'],['color','Farebné'],['teal','Mätové'],['white','Biele'],['ink','Tmavé']];
@@ -2645,7 +2651,7 @@ const LP=(()=>{const c=document.createElement('canvas').getContext('2d');const R
     const cx=(b[0]+b[2])/2;
     return{p,col,word,e,far,r0,delay:word?0:((cx-30)/287)*.28+R()*.16}})})();
 function logoFill(style,col,isWord){
-  if(style==='color')return col; if(style==='teal')return PAL.teal; if(style==='white')return '#FFFFFF'; if(style==='ink')return PAL.ink; return col}
+  if(style==='color')return col; if(style==='teal')return PAL.teal; if(style==='white')return '#FFFFFF'; if(style==='ink')return PAL.ink; if(PAL[style])return PAL[style]; return col}
 /* t = čas od začiatku animácie loga (s); mode: 'build' | 'fade' | null */
 function drawLogo(ctx,x,y,w,style,t,mode){
   const s=w/LB.w;ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.translate(-LB.x,-LB.y);
@@ -2780,10 +2786,10 @@ function drawSocial(ctx,it,x0,y0,col){ctx.save();ctx.translate(x0,y0);ctx.scale(
   ctx.restore()}
 function gapBetween(a,b,u,k){if(!a||!b)return 0;
   if(a.kind==='social'||b.kind==='social')return 40*u*k;
-  if(a.kind==='logo')return(b.kind==='title'?16:30)*u*k;
+  if(a.kind==='logo')return 58*u*k;
   if(a.kind==='title'&&b.kind==='title')return 10*u*k;
-  if(a.kind==='title')return 26*u*k;
-  if(b.kind==='logo')return 40*u*k;
+  if(a.kind==='title')return 34*u*k;
+  if(b.kind==='logo')return 58*u*k;
   if(a.type===b.type)return 18*u*k;
   if(b.kind==='title')return 30*u*k;
   return 30*u*k}
@@ -2912,7 +2918,7 @@ function renderFrame(ctx,fk,S,o){render(ctx,fk,S,o)}
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const ULAYOUTS=[['klasika','Klasika'],['hore','Hore'],['stred','Na stred']];
 const UBGS=[['pas','Sivá s pásom'],['konfety','Konfety'],['farba','Farebná']];
-const FSHORT={post:['Post','Instagram'],story:['Story','Instagram'],a4:['A4','plagát'],a3:['A3','plagát'],reel:['Intro','video']};
+const FSHORT={post:['IG','post'],postvid:['IG','video'],story:['IGS','story'],reel:['IGS','video'],a4:['A4','plagát'],a3:['A3','plagát']};
 let current='story',playing=false,playT=0,playStart=0,raf=0;
 function save(){try{const c=Object.assign({},S);delete c.photo;localStorage.setItem('hb-studio-v1',JSON.stringify(c))}catch(e){}}
 function toast(msg,ms=2600){const t=$('#toast');t.textContent=msg;t.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>t.hidden=true,ms)}
@@ -2923,7 +2929,7 @@ function drawMain(){const box=$('#canvasbox');const maxW=Math.max(200,box.client
   const[w,h]=sizeFor(current,maxW,maxH);drawTo($('#main'),current,w,h,FORMATS[current].anim&&playing?playT:null);
   $('#playBtn').hidden=!FORMATS[current].anim||playing;document.documentElement.style.setProperty('--pvh',box.offsetHeight+'px')}
 function drawOpts(){
-  const fk=current==='reel'?'story':current;
+  const fk=(FORMATS[current].anim?(FORMATS[current].H>1500?'story':'post'):current);
   $$('#layouts canvas').forEach(c=>{const st=Object.assign({},S,{layout:c.dataset.k,over:{}});const w=c.parentElement.clientWidth-14;drawTo(c,fk,w,w*1.25,null,st)});
   $$('#bgs canvas').forEach(c=>{const st=Object.assign({},S,{bg:c.dataset.k,over:{}});const w=c.parentElement.clientWidth-14;drawTo(c,fk,w,w*1.25,null,st)});
 }
@@ -2941,11 +2947,11 @@ function buildBlocks(){const box=$('#blocks');box.innerHTML='';
     box.appendChild(d)})}
 function optCards(sel,list,key){const el=$(sel);el.innerHTML='';for(const[k,n]of list){const b=document.createElement('button');b.innerHTML=`<canvas data-k="${k}"></canvas>${n}`;b.dataset.k=k;b.onclick=()=>{S[key]=k;S.over={};syncUI();changed()};el.appendChild(b)}}
 function buildFormats(){const el=$('#formats');el.innerHTML='';for(const fk of FKEYS){const b=document.createElement('button');b.innerHTML=`${FSHORT[fk][0]}<small>${FSHORT[fk][1]}</small>`;b.setAttribute('aria-pressed',String(fk===current));
-  b.onclick=()=>{current=fk;S.master=fk;stop();syncUI();drawMain();save();if(fk==='reel')play()};el.appendChild(b)}}
+  b.onclick=()=>{current=fk;S.master=fk;stop();syncUI();drawMain();save();if(FORMATS[fk].anim)play()};el.appendChild(b)}}
 function syncUI(){
   const pr=(sel,v)=>$$(sel+'>[data-k]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===String(v))));
   pr('#layouts',S.layout);pr('#bgs',S.bg);pr('#bgColors',S.bgColor);
-  $('#bgColors').hidden=S.bg!=='farba';$('#logoOn').checked=S.logo;
+  $('#bgColors').hidden=S.bg!=='farba';$('#logoOn').checked=S.logo;$('#logoCols').hidden=!S.logo;$('#logoColH').hidden=!S.logo;$$('#logoCols>[data-k]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.k===(S.logoStyle==='auto'?'color':S.logoStyle))));
   $('#photoPrev').hidden=!S.photo;if(S.photo)$('#photoPrev').src=S.photo;$('#photoDel').hidden=!S.photo;$('#photoYWrap').hidden=!S.photo;$('#photoY').value=S.photoY;
   $('#photoTxt').hidden=!!S.photo;$('#photoBtn').textContent=S.photo?'Vymeniť fotku':'Vybrať fotku';
   const lay=effLayout(current,S);const hasA=lay!=='dole',hasB=lay==='klasika'||lay==='obratene'||lay==='dole';
@@ -2966,7 +2972,8 @@ function initUI(){
   $$('[data-add]').forEach(b=>b.onclick=()=>{const ty=b.dataset.add;S.blocks.push({id:UID++,type:ty,text:''});buildBlocks();changed();const ta=$('#bt'+S.blocks[S.blocks.length-1].id);if(ta)ta.focus()});
   $$('[data-tab]').forEach(b=>b.onclick=()=>{$$('[data-tab]').forEach(x=>x.setAttribute('aria-selected',String(x===b)));$$('[data-pane]').forEach(p=>p.hidden=p.dataset.pane!==b.dataset.tab);if(b.dataset.tab==='vzhlad')drawOpts()});
   document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{const tb=document.querySelector('.tabs');const y=tb.parentElement.getBoundingClientRect().top+window.scrollY-document.getElementById('canvasbox').offsetHeight;if(window.scrollY>y)window.scrollTo(0,y)}));
-  $('#logoOn').onchange=e=>{S.logo=e.target.checked;changed()};
+  $('#logoOn').onchange=e=>{S.logo=e.target.checked;syncUI();changed()};
+  {const lc=$('#logoCols');const LN={color:'Farebné',teal:'Tyrkysové',orange:'Oranžové',mag:'Purpurové',lav:'Levanduľové',pink:'Ružové',ink:'Tmavé',white:'Biele'};for(const k of['color','teal','orange','mag','lav','pink','ink','white']){const b=document.createElement('button');b.dataset.k=k;b.setAttribute('aria-label','Logo '+LN[k]);b.title=LN[k];if(k==='color')b.className='mix';else if(k==='white')b.className='wh';else b.style.background=PAL[k];b.onclick=()=>{S.logoStyle=k;syncUI();changed()};lc.appendChild(b)}}
   $('#photoY').oninput=e=>{S.photoY=+e.target.value;changed()};
   const num=(id,key,after)=>{$(id).oninput=e=>{S[key]=+e.target.value;if(after)after();changed()}};
   num('#posA','posA');num('#posB','posB');num('#decoS','decoSize');num('#decoA','decoAlpha');num('#bandS','bandScale');num('#veil','photoVeil');
@@ -2982,7 +2989,9 @@ function initUI(){
   $('#photoDel').onclick=()=>{S.photo=null;S.photoHi=null;try{localStorage.removeItem('hb-studio-photo')}catch(e){}syncUI();changed()};
   $('#vMan').onclick=()=>view('man');$('#vBack').onclick=()=>view('edit');
   $('#bleedOn').checked=PRINTOPT.bleed;$('#bleedOn').onchange=e=>{PRINTOPT.bleed=e.target.checked;try{localStorage.setItem('atelier-bleed',PRINTOPT.bleed?'1':'0')}catch(_){}};
-  $('#expBtn').onclick=()=>{$('#expMain').textContent='Tento formát: '+FORMATS[current].n;$('#sheet').hidden=false};
+  $('#expBtn').onclick=()=>{$('#expMain').textContent='Tento formát: '+FORMATS[current].n;$('#sheet').hidden=false;fileHintUp()};
+  const fileHintUp=()=>{const ft=$('#fileTema');if(document.activeElement!==ft)ft.value=S.fileTema||'';S.fileTema='';ft.placeholder=tema();S.fileTema=ft.value;const f=FORMATS[current];const bl=f.mm&&$('#bleedOn')&&$('#bleedOn').checked;$('#fileHint').textContent='Súbor: '+tema()+' - '+FNAME[current]+(bl?' 3mm spad':'')+'.'+f.ext};
+  $('#fileTema').oninput=e=>{S.fileTema=e.target.value;save();fileHintUp()};$('#bleedOn').addEventListener('change',fileHintUp);
   $('#sheetClose').onclick=()=>$('#sheet').hidden=true;$('#sheet').onclick=e=>{if(e.target.id==='sheet')$('#sheet').hidden=true};
   $('#expMain').onclick=()=>{$('#sheet').hidden=true;doExport(current)};
   $('#expAll').onclick=()=>{$('#sheet').hidden=true;exportAll()};
@@ -2999,7 +3008,8 @@ function stop(){playing=false;cancelAnimationFrame(raf);drawMain()}
 /* ---------- export ---------- */
 let DL=null;(async()=>{try{DL=window.claude&&window.claude.use?await window.claude.use('downloads'):null}catch(e){DL=null}})();
 function slug(){const t=(S.blocks.find(b=>b.type==='title')||{text:'navrh'}).text;return t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'navrh'}
-const FNAME={post:'insta-post',story:'insta-story',a4:'plagat-A4',a3:'plagat-A3',reel:'reel-intro'};
+const FNAME={post:'ig',postvid:'ig vid',story:'igs',reel:'igs vid',a4:'a4 plagat',a3:'a3 plagat'};
+function tema(){const raw=(S.fileTema||'').trim()||(S.blocks.find(b=>b.type==='title')||{text:''}).text;return raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9 .\-]+/g,' ').replace(/\s+/g,' ').trim().slice(0,40).trim()||'navrh'}
 const TOUCH=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
 let PEND=null;
 async function saveFile(name,blob){
@@ -3015,22 +3025,22 @@ async function saveFile(name,blob){
   setTimeout(()=>URL.revokeObjectURL(url),60000);toast('Stiahnuté: '+name);return true}
 function fullCanvas(fk,bleed){const f=FORMATS[fk];const ext=bleed&&f.mm?Math.round(3/25.4*f.dpi):0;const c=document.createElement('canvas');c.width=f.W+2*ext;c.height=f.H+2*ext;renderFrame(c.getContext('2d'),fk,S,{W:f.W,H:f.H,ext,t:null});return{c,ext}}
 const toBlob=(c,type,q)=>new Promise(r=>c.toBlob(r,type,q));
-async function makeFile(fk){const f=FORMATS[fk];const base=slug()+'_'+FNAME[fk];
-  if(fk==='reel'){const v=await makeVideo();return{name:base+'.'+v.ext,blob:v.blob}}
+async function makeFile(fk){const f=FORMATS[fk];const base=tema()+' - '+FNAME[fk];
+  if(FORMATS[fk].anim){const v=await makeVideo(null,fk);return{name:base+'.'+v.ext,blob:v.blob}}
   if(f.ext==='png'){const{c}=fullCanvas(fk);return{name:base+'.png',blob:await pngDpi(await toBlob(c,'image/png'),72)}}
   const bleed=PRINTOPT.bleed;
-  try{return{name:base+(bleed?'_spadavka-3mm':'')+'.pdf',blob:await makePrintPdf(fk,bleed)}}catch(e){console.warn('Vektorové PDF zlyhalo, používam obrázok',e)}const{c,ext}=fullCanvas(fk,bleed);const b=bleed?3:0;const pw=f.mm[0]+2*b,ph=f.mm[1]+2*b;
+  try{return{name:base+(bleed?' 3mm spad':'')+'.pdf',blob:await makePrintPdf(fk,bleed)}}catch(e){console.warn('Vektorové PDF zlyhalo, používam obrázok',e)}const{c,ext}=fullCanvas(fk,bleed);const b=bleed?3:0;const pw=f.mm[0]+2*b,ph=f.mm[1]+2*b;
   const{jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:[pw,ph],orientation:'portrait',compress:true});
   const jpg=c.toDataURL('image/jpeg',.94);pdf.addImage(jpg,'JPEG',0,0,pw,ph,undefined,'FAST');pdf.setProperties({title:base,creator:'Ateliér Handrbolka'});
-  return{name:base+(bleed?'_spadavka':'')+'.pdf',blob:pdf.output('blob')}}
-async function makeVideo(onp){
-  const f=FORMATS.reel;const fps=30,n=Math.round(S.dur*fps);const c=document.createElement('canvas');c.width=f.W;c.height=f.H;const ctx=c.getContext('2d');
+  return{name:base+(bleed?' 3mm spad':'')+'.pdf',blob:pdf.output('blob')}}
+async function makeVideo(onp,fk='reel'){
+  const f=FORMATS[fk];const fps=30,n=Math.round(S.dur*fps);const c=document.createElement('canvas');c.width=f.W;c.height=f.H;const ctx=c.getContext('2d');
   if(window.VideoEncoder&&window.Mp4Muxer){try{
     const codecs=['avc1.640028','avc1.4d0028','avc1.640033','avc1.42003e'];let cfg=null;
     for(const codec of codecs){const t={codec,width:f.W,height:f.H,bitrate:10e6,framerate:fps};try{const s=await VideoEncoder.isConfigSupported(t);if(s.supported){cfg=t;break}}catch(e){}}
     if(cfg){const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:'avc',width:f.W,height:f.H},fastStart:'in-memory'});
       let err=null;const enc=new VideoEncoder({output:(ch,meta)=>muxer.addVideoChunk(ch,meta),error:e=>err=e});enc.configure(cfg);
-      for(let i=0;i<n;i++){renderFrame(ctx,'reel',S,{W:f.W,H:f.H,t:i/fps});const fr=new VideoFrame(c,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)});enc.encode(fr,{keyFrame:i%60===0});fr.close();
+      for(let i=0;i<n;i++){renderFrame(ctx,fk,S,{W:f.W,H:f.H,t:i/fps});const fr=new VideoFrame(c,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)});enc.encode(fr,{keyFrame:i%60===0});fr.close();
         if(enc.encodeQueueSize>8)await new Promise(r=>setTimeout(r,5));if(onp&&i%10===0)onp(i/n);if(err)throw err}
       await enc.flush();muxer.finalize();return{blob:new Blob([muxer.target.buffer],{type:'video/mp4'}),ext:'mp4'}}
   }catch(e){console.warn('WebCodecs zlyhal, skúšam nahrávanie',e)}}
@@ -3040,15 +3050,15 @@ async function makeVideo(onp){
   c.style.cssText='position:fixed;left:-9999px;top:0;width:10px;height:10px';document.body.appendChild(c);
   const st=c.captureStream(fps);const rec=new MediaRecorder(st,{mimeType:type,videoBitsPerSecond:10e6});const parts=[];rec.ondataavailable=e=>e.data.size&&parts.push(e.data);
   const done=new Promise(r=>rec.onstop=r);rec.start();const t0=performance.now();
-  await new Promise(res=>{const step=()=>{const t=(performance.now()-t0)/1000;renderFrame(ctx,'reel',S,{W:f.W,H:f.H,t:Math.min(t,S.dur)});if(onp)onp(t/S.dur);if(t<S.dur+.1)requestAnimationFrame(step);else res()};step()});
+  await new Promise(res=>{const step=()=>{const t=(performance.now()-t0)/1000;renderFrame(ctx,fk,S,{W:f.W,H:f.H,t:Math.min(t,S.dur)});if(onp)onp(t/S.dur);if(t<S.dur+.1)requestAnimationFrame(step);else res()};step()});
   rec.stop();await done;c.remove();const ext=type.includes('mp4')?'mp4':'webm';return{blob:new Blob(parts,{type:type.split(';')[0]}),ext}}
 let busy=false;
 async function doExport(fk){if(busy)return;busy=true;$('#expBtn').disabled=true;
-  try{toast(fk==='reel'?'Vyrábam video…':'Pripravujem súbor…',20000);const{name,blob}=await makeFile(fk);await saveFile(name,blob)}catch(e){console.error(e);toast('Export zlyhal: '+(e.message||e),5000)}
+  try{toast(FORMATS[fk].anim?'Vyrábam video…':'Pripravujem súbor…',20000);const{name,blob}=await makeFile(fk);await saveFile(name,blob)}catch(e){console.error(e);toast('Export zlyhal: '+(e.message||e),5000)}
   finally{busy=false;$('#expBtn').disabled=false}}
 async function exportAll(){if(busy)return;busy=true;$('#expBtn').disabled=true;
   try{const zip=new JSZip();for(const fk of FKEYS){toast('Pripravujem '+FORMATS[fk].n+'…',20000);try{const{name,blob}=await makeFile(fk);zip.file(name,blob)}catch(e){console.warn(fk,e)}}
-    toast('Balím ZIP…',20000);const blob=await zip.generateAsync({type:'blob'});await saveFile(slug()+'_vsetky-formaty.zip',blob)}catch(e){toast('Export zlyhal: '+(e.message||e),5000)}
+    toast('Balím ZIP…',20000);const blob=await zip.generateAsync({type:'blob'});await saveFile(tema()+' - vsetky formaty.zip',blob)}catch(e){toast('Export zlyhal: '+(e.message||e),5000)}
   finally{busy=false;$('#expBtn').disabled=false}}
 
 /* ---------- manuál ---------- */
@@ -3085,7 +3095,7 @@ async function rpc(fn,args){
   if(!r.ok){const m=(j&&(j.message||j.hint))||t||('HTTP '+r.status);const err=new Error(m);err.badKod=String(m).includes('zly_kod');throw err}
   return j}
 function navTitle(){const t=(S.blocks.find(b=>b.type==='title')||{}).text||'Návrh';const i=(S.blocks.find(b=>b.type==='info')||{}).text||'';return (t.replace(/\s+/g,' ').trim()+(i?' · '+i.replace(/\s+/g,' ').trim():'')).slice(0,120)}
-function thumb(){const fk=current==='reel'?'story':current;const f=FORMATS[fk];const w=160,h=Math.round(w*f.H/f.W);const c=document.createElement('canvas');c.width=w;c.height=h;
+function thumb(){const fk=(FORMATS[current].anim?(FORMATS[current].H>1500?'story':'post'):current);const f=FORMATS[fk];const w=160,h=Math.round(w*f.H/f.W);const c=document.createElement('canvas');c.width=w;c.height=h;
   renderFrame(c.getContext('2d'),fk,S,{W:w,H:h,t:null});return c.toDataURL('image/jpeg',.72)}
 const esc=s=>String(s).replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch]));
 function fmtDate(s){try{return new Date(s).toLocaleString('sk-SK',{day:'numeric',month:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return ''}}
